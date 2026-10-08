@@ -152,6 +152,13 @@ void main() {
     expect(p.finished, isTrue);
     expect(p.playing, isFalse);
   });
+  test('play before initialization cannot start unloaded audio', () async {
+    final t = FakeTransport();
+    final p = LockedPlayer(const [Song('a', 'A', '', 'a')], t);
+    await p.play();
+    expect(t.playing, isFalse);
+    expect(p.playing, isFalse);
+  });
   test('empty library cannot play or load arbitrary media', () async {
     final t = FakeTransport();
     final p = LockedPlayer([], t);

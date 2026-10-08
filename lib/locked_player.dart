@@ -39,6 +39,7 @@ class LockedPlayer extends ChangeNotifier {
   int _index;
   int get index => _index;
   bool playing = false, finished, _transition = false, _completed = false;
+  bool ready = false;
   String? error;
   StreamSubscription<bool>? _subscription;
   Future<void> initialize() async {
@@ -54,6 +55,8 @@ class LockedPlayer extends ChangeNotifier {
     if (songs.isNotEmpty) {
       await transport.load(songs[_index].asset, initialPosition);
     }
+    ready = true;
+    notifyListeners();
   }
 
   Future<void> _advance() async {
@@ -79,7 +82,7 @@ class LockedPlayer extends ChangeNotifier {
   }
 
   Future<void> play() async {
-    if (songs.isEmpty || finished || _transition) return;
+    if (!ready || songs.isEmpty || finished || _transition) return;
     try {
       await transport.normalSpeed();
       await transport.play();

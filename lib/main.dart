@@ -18,7 +18,7 @@ class AssetTransport implements MusicTransport {
       _audio.processingStateStream.map((s) => s == ProcessingState.completed);
   @override
   Future<void> load(String asset, Duration position) async {
-    await _audio.setAsset(asset, initialPosition: position);
+    await _audio.setAsset(asset, initialPosition: position, preload: !kIsWeb);
   }
 
   @override
