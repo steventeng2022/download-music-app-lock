@@ -32,6 +32,14 @@ class FakeTransport implements MusicTransport {
   }
 }
 
+class FailingTransport extends FakeTransport {
+  @override
+  Future<void> load(String asset, Duration position) async {
+    if (asset == 'b') throw StateError('missing asset');
+    await super.load(asset, position);
+  }
+}
+
 void main() {
   test('play loads only first allowlisted asset at normal speed', () async {
     final t = FakeTransport()..rate = 2;
@@ -105,6 +113,45 @@ void main() {
       expect(p.playing, isFalse);
     },
   );
+  test('load failure is surfaced instead of advancing silently', () async {
+    final t = FailingTransport();
+    final p = LockedPlayer(const [
+      Song('a', 'A', '', 'a'),
+      Song('b', 'B', '', 'b'),
+    ], t);
+    await p.initialize();
+    await p.play();
+    t.events.add(true);
+    await Future<void>.delayed(Duration.zero);
+    expect(p.error, isNotNull);
+    expect(p.playing, isFalse);
+  });
+  test('completion while paused is ignored', () async {
+    final t = FakeTransport();
+    final p = LockedPlayer(const [
+      Song('a', 'A', '', 'a'),
+      Song('b', 'B', '', 'b'),
+    ], t);
+    await p.initialize();
+    await p.play();
+    await p.pause();
+    t.events.add(true);
+    await Future<void>.delayed(Duration.zero);
+    expect(p.index, 0);
+    expect(t.loads, ['a']);
+  });
+  test('completed state survives reopen without replay', () async {
+    final t = FakeTransport();
+    final p = LockedPlayer(
+      const [Song('a', 'A', '', 'a')],
+      t,
+      wasFinished: true,
+    );
+    await p.initialize();
+    await p.play();
+    expect(p.finished, isTrue);
+    expect(p.playing, isFalse);
+  });
   test('empty library cannot play or load arbitrary media', () async {
     final t = FakeTransport();
     final p = LockedPlayer([], t);

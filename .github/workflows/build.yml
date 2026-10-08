@@ -57,7 +57,7 @@ jobs:
           cache: true
       - run: flutter pub get --enforce-lockfile
       - run: flutter analyze && flutter test
-      - run: flutter build web --release --base-href ./
+      - run: flutter build web --release --base-href /
       - name: Package website
         run: |
           mkdir -p dist
