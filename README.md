@@ -14,14 +14,14 @@ Every push to `feat/**` or `main`, pull request, and manual dispatch builds **th
 - No next, previous, seeking, playback-rate, URL entry, file picker, or import controls.
 - Playback is fixed at 1×; only the player's natural completion event advances the bundled order.
 - Remote/headset skip, seek, speed, queue mutation, repeat/shuffle and external-media commands are explicitly ignored by the native audio handler.
-- Reopening restores local track and position (saved once per second), paused; completing the library remains completed. There is no child-accessible replay/reset. An adult can clear application storage to start a fresh listening session.
+- The last track naturally finishing automatically restarts the first track at 1×, continuously looping the fixed queue. Reopening restores local track and position, paused. Previous-version completed sessions migrate to the first track at zero, without needing storage clearing.
 - No animation; reduced-motion preferences need no special handling. Responsive scroll layout, large touch targets, semantic standard controls, Traditional Chinese labels.
 
 This is an **application-level control restriction, not a device kiosk or security sandbox**. Device settings, clearing data/reinstalling, browser developer tools, OS/browser media manipulation, or modifying source can bypass restrictions. Web cannot prevent those operations. Progress persistence is best-effort local storage, not tamper-proof or cross-device. Native background audio is configured, but physical-device/lock-screen/headset behavior needs device testing.
 
 ## Real approved music
 
-`assets/library.json` is the fixed allowlist and provenance manifest. One real MP3 was retrieved from the user-supplied public Drive folder after the user confirmed redistribution authorization. No synthetic/demo songs are included.
+`assets/library.json` is the fixed allowlist and provenance manifest. Four real MP3 files were retrieved from the user-supplied public Drive folder after the user confirmed redistribution authorization. No synthetic/demo songs are included. Playback order: 2025 compilation → long special → 2021 Lunar New Year special → 2023 compilation → repeat. Each file has its own source ID, exact bytes and SHA-256 in the manifest.
 
 - 巧連智【唱唱跳跳】2025精選合輯（二） (one compilation file, not individually split songs)
 - Source file ID: `1WobsuINwUngw_kGOC0iutS7Ksco83SZ9`

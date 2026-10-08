@@ -26,12 +26,15 @@ class LockedPlayer extends ChangeNotifier {
     List<Song> songs,
     this.transport, {
     int initialIndex = 0,
-    this.initialPosition = Duration.zero,
+    Duration initialPosition = Duration.zero,
     bool wasFinished = false,
     this.save,
   }) : songs = List.unmodifiable(songs),
-       _index = songs.isEmpty ? 0 : initialIndex.clamp(0, songs.length - 1),
-       finished = wasFinished;
+       _index = songs.isEmpty || wasFinished
+           ? 0
+           : initialIndex.clamp(0, songs.length - 1),
+       initialPosition = wasFinished ? Duration.zero : initialPosition,
+       finished = false;
   final List<Song> songs;
   final MusicTransport transport;
   final Duration initialPosition;
@@ -62,16 +65,11 @@ class LockedPlayer extends ChangeNotifier {
   Future<void> _advance() async {
     _transition = true;
     try {
-      if (_index + 1 >= songs.length) {
-        finished = true;
-        await pause();
-      } else {
-        _index++;
-        await save?.call(_index, false);
-        await transport.load(songs[_index].asset, Duration.zero);
-        await transport.normalSpeed();
-        await transport.play();
-      }
+      _index = (_index + 1) % songs.length;
+      await save?.call(_index, false);
+      await transport.load(songs[_index].asset, Duration.zero);
+      await transport.normalSpeed();
+      await transport.play();
       await save?.call(_index, finished);
     } catch (_) {
       error = '音樂暫時無法播放，請大人協助。';

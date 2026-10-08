@@ -73,10 +73,10 @@ void main() {
     t.events.add(false);
     t.events.add(true);
     await Future<void>.delayed(Duration.zero);
-    expect(p.finished, isTrue);
-    expect(p.playing, isFalse);
-    await p.play();
-    expect(t.loads, ['a', 'b']);
+    expect(p.finished, isFalse);
+    expect(p.playing, isTrue);
+    expect(p.index, 0);
+    expect(t.loads, ['a', 'b', 'a']);
   });
   test('saved progress restores without selecting another track', () async {
     final t = FakeTransport();
@@ -140,7 +140,7 @@ void main() {
     expect(p.index, 0);
     expect(t.loads, ['a']);
   });
-  test('completed state survives reopen without replay', () async {
+  test('legacy completed state restarts at first track paused', () async {
     final t = FakeTransport();
     final p = LockedPlayer(
       const [Song('a', 'A', '', 'a')],
@@ -148,9 +148,11 @@ void main() {
       wasFinished: true,
     );
     await p.initialize();
-    await p.play();
-    expect(p.finished, isTrue);
+    expect(p.index, 0);
+    expect(p.finished, isFalse);
     expect(p.playing, isFalse);
+    await p.play();
+    expect(p.playing, isTrue);
   });
   test('play before initialization cannot start unloaded audio', () async {
     final t = FakeTransport();
@@ -158,6 +160,48 @@ void main() {
     await p.play();
     expect(t.playing, isFalse);
     expect(p.playing, isFalse);
+  });
+  test('single song loops repeatedly once per natural completion and saves zero index', () async {
+    final t = FakeTransport();
+    final saved = <int>[];
+    final p = LockedPlayer(
+      const [Song('a', 'A', '', 'a')],
+      t,
+      save: (i, done) async {
+        expect(done, isFalse);
+        saved.add(i);
+      },
+    );
+    await p.initialize();
+    await p.play();
+    for (var cycle = 0; cycle < 3; cycle++) {
+      t.events.add(false);
+      t.events.add(true);
+      t.events.add(true);
+      await Future<void>.delayed(Duration.zero);
+      expect(t.loads.length, cycle + 2);
+      expect(p.playing, isTrue);
+      expect(p.index, 0);
+    }
+    expect(saved, everyElement(0));
+  });
+  test('four songs wrap in their original order', () async {
+    final t = FakeTransport();
+    final p = LockedPlayer(const [
+      Song('a', 'A', '', 'a'),
+      Song('b', 'B', '', 'b'),
+      Song('c', 'C', '', 'c'),
+      Song('d', 'D', '', 'd'),
+    ], t);
+    await p.initialize();
+    await p.play();
+    for (var i = 0; i < 8; i++) {
+      t.events.add(false);
+      t.events.add(true);
+      await Future<void>.delayed(Duration.zero);
+    }
+    expect(t.loads, ['a', 'b', 'c', 'd', 'a', 'b', 'c', 'd', 'a']);
+    expect(p.playing, isTrue);
   });
   test('empty library cannot play or load arbitrary media', () async {
     final t = FakeTransport();

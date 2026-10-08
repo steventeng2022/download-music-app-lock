@@ -262,7 +262,7 @@ class MusicHome extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     const Text(
-                      '每段音樂聽完，才會接著播放下一段。',
+                      '每段聽完接著播放，全部聽完會從頭循環。',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: Color(0xff526761)),
                     ),
