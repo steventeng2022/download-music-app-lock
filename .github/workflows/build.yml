@@ -1,0 +1,96 @@
+name: Three-platform builds
+on:
+  push:
+    branches: ['feat/**', main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: builds-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.6'
+          channel: stable
+          cache: true
+      - run: flutter pub get --enforce-lockfile
+      - run: flutter analyze && flutter test
+      - name: Accept Android SDK licenses
+        shell: bash
+        run: |
+          set +o pipefail
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses
+          status=${PIPESTATUS[1]}
+          set -o pipefail
+          test "$status" -eq 0
+      - run: flutter build apk --release
+      - name: Package Android testing build
+        run: |
+          mkdir -p dist
+          cp build/app/outputs/flutter-apk/app-release.apk dist/little-music-testing.apk
+          cd dist
+          sha256sum little-music-testing.apk > SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-apk-${{ github.sha }}
+          path: dist/
+          retention-days: 30
+          if-no-files-found: error
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.6'
+          channel: stable
+          cache: true
+      - run: flutter pub get --enforce-lockfile
+      - run: flutter analyze && flutter test
+      - run: flutter build web --release --base-href ./
+      - name: Package website
+        run: |
+          mkdir -p dist
+          (cd build/web && zip -qr ../../dist/little-music-web.zip .)
+          (cd dist && sha256sum little-music-web.zip > SHA256SUMS.txt)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-zip-${{ github.sha }}
+          path: dist/
+          retention-days: 30
+          if-no-files-found: error
+  ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.6'
+          channel: stable
+          cache: true
+      - run: flutter pub get --enforce-lockfile
+      - run: flutter analyze && flutter test
+      - run: flutter build ios --release --no-codesign
+      - name: Package unsigned IPA (external signing required)
+        run: |
+          test -d build/ios/iphoneos/Runner.app
+          mkdir -p dist staging/Payload
+          cp -R build/ios/iphoneos/Runner.app staging/Payload/Runner.app
+          (cd staging && zip -qr ../dist/little-music-unsigned.ipa Payload)
+          (cd dist && shasum -a 256 little-music-unsigned.ipa > SHA256SUMS.txt)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-unsigned-ipa-${{ github.sha }}
+          path: dist/
+          retention-days: 30
+          if-no-files-found: error
